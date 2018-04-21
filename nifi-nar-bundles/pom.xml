@@ -4,12 +4,12 @@
   <parent>
     <groupId>org.hurtrobotic</groupId>
     <artifactId>nifi</artifactId>
-    <version>${nifi.version}</version>
+    <version>1.5.0</version>
   </parent>
-  <artifactId>nifi-nar-bundles</artifactId>	
+  <artifactId>nifi-nar-bundles</artifactId>
+  <version>1.5.0</version>	
   <packaging>pom</packaging>
   <modules>
-    <module>nifi-tess4J-processors</module>
     <module>nifi-tess4J-bundle</module>
   </modules>
 </project>

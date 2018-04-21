@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.hurtrobotic</groupId>
 		<artifactId>nifi-tess4J-bundle</artifactId>
-		<version>${nifi.version}</version>
+		<version>1.5.0</version>
 	</parent>
 
 	<artifactId>nifi-tess4J-nar</artifactId>
@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>org.hurtrobotic</groupId>
 			<artifactId>nifi-tess4J-processors</artifactId>
-			<version>${nifi.version}</version>
+			<version>1.5.0</version>
 		</dependency>
 
 		<dependency>
@@ -29,21 +29,21 @@
 			<type>nar</type>
 		</dependency>
 	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>com.github.maven-nar</groupId>
-				<artifactId>nar-maven-plugin</artifactId>
-				<version>3.2.3</version>
-				<extensions>true</extensions> <!-- This needs to be present for a new packaging -->
-				<configuration>
-					<libraries>
-						<library>
-							<type>executable</type>
-						</library>
-					</libraries>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+<!-- 	<build> -->
+<!-- 		<plugins> -->
+<!-- 			<plugin> -->
+<!-- 				<groupId>com.github.maven-nar</groupId> -->
+<!-- 				<artifactId>nar-maven-plugin</artifactId> -->
+<!-- 				<version>3.2.3</version> -->
+<!-- 				<extensions>true</extensions> This needs to be present for a new packaging -->
+<!-- 				<configuration> -->
+<!-- 					<libraries> -->
+<!-- 						<library> -->
+<!-- 							<type>executable</type> -->
+<!-- 						</library> -->
+<!-- 					</libraries> -->
+<!-- 				</configuration> -->
+<!-- 			</plugin> -->
+<!-- 		</plugins> -->
+<!-- 	</build> -->
 </project>

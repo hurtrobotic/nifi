@@ -3,17 +3,19 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.hurtrobotic</groupId>	
+	<artifactId>nifi-tess4J-bundle</artifactId>
+	<version>1.5.0</version>
+	
+	<packaging>pom</packaging>
+		
 	<parent>
 		<groupId>org.hurtrobotic</groupId>
 		<artifactId>nifi-nar-bundles</artifactId>
-		<version>${nifi.version}</version>
+		<version>1.5.0</version>
 	</parent>
-	<artifactId>nifi-tess4J-bundle</artifactId>
-	<packaging>pom</packaging>
 	<modules>
-		<module>nifi-tess4J-nar</module>
-		
-		
-		<module>nifi-tess4J-processors</module>
+		<module>nifi-tess4J-processors</module>	
+		<module>nifi-tess4J-nar</module>				
 	</modules>
 </project>
