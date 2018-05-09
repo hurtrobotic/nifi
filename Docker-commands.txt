@@ -15,6 +15,11 @@ Run console on running container :
 docker exec -it --user root nifi-ocr bash
 (user root is used .... use nifi user for starting ./nifi.sh manually)
 
+Display container logs interactive mode :
+---------------------------------------
+docker container logs -f <CONTAINER-ID>
+
+
 Remove containers not running :
 -----------------------------
 FOR /f "tokens=*" %i IN ('docker ps -a -q') DO docker rm %i
