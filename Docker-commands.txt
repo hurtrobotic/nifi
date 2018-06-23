@@ -19,7 +19,6 @@ Display container logs interactive mode :
 ---------------------------------------
 docker container logs -f <CONTAINER-ID>
 
-
 Remove containers not running :
 -----------------------------
 FOR /f "tokens=*" %i IN ('docker ps -a -q') DO docker rm %i
@@ -30,7 +29,7 @@ FOR /f "tokens=*" %i IN ('docker images -q -f "dangling=true"') DO docker rmi %i
 
 re-build nifi image :
 -------------------
-go to source path = <workspace-loc>\tesseract-ocr\nifi-addons\Processors\nifi-tesseract
+go to source path = <workspace-loc>\tesseract-ocr\nifi
 
 docker build -t hurtrobotic/nifi-ocr .
 
@@ -38,5 +37,5 @@ Nifi run container :
 ------------------
 if container with name "nifi-ocr" is present, you have to remove it.
 
-docker run --name nifi-ocr -it -p 8080:8080 -p 8181:8181 -v //host_mnt/c/Users/James/data/nifi/content_repository:/opt/nifi/nifi-1.6.0/content_repository -v //host_mnt/c/Users/James/data/nifi/database_repository:/opt/nifi/nifi-1.6.0/database_repository -v //host_mnt/c/Users/James/data/nifi/flowfile_repository:/opt/nifi/nifi-1.6.0/flowfile_repository -v //host_mnt/c/Users/James/data/nifi/importscripts:/opt/nifi/importscripts -v //host_mnt/c/Users/James/data/nifi/logs:/opt/nifi/nifi-1.6.0/logs -v //host_mnt/c/Users/James/data/nifi/modules:/opt/nifi/modules -v //host_mnt/c/Users/James/data/nifi/provenance_repository:/opt/nifi/nifi-1.6.0/provenance_repository -v //host_mnt/c/Users/James/data/nifi/flux:/opt/nifi/flux hurtrobotic/nifi-ocr
+docker run --name nifi-ocr -it -p 8080:8080 -p 8181:8181 -v //host_mnt/c/Users/James/data/nifi/content_repository:/opt/nifi/nifi-1.6.0/content_repository -v //host_mnt/c/Users/James/data/nifi/database_repository:/opt/nifi/nifi-1.6.0/database_repository -v //host_mnt/c/Users/James/data/nifi/flowfile_repository:/opt/nifi/nifi-1.6.0/flowfile_repository -v //host_mnt/c/Users/James/workspace/tesseract-ocr/nifi/nifi-scripts:/opt/nifi/nifi-1.6.0/importscripts -v //host_mnt/c/Users/James/data/nifi/logs:/opt/nifi/nifi-1.6.0/logs -v //host_mnt/c/Users/James/workspace/tesseract-ocr/nifi/nifi-ext-libs:/opt/nifi/modules -v //host_mnt/c/Users/James/data/nifi/provenance_repository:/opt/nifi/nifi-1.6.0/provenance_repository -v //host_mnt/c/Users/James/data/nifi/flux:/opt/nifi/flux hurtrobotic/nifi-ocr
 

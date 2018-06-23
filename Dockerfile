@@ -75,6 +75,7 @@ RUN apt-get install -y tesseract-ocr-vie
 RUN apt-get install -y curl && apt-get install -y wget && apt-get install -y ghostscript
 # Install Java
 RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections && apt-get install -y software-properties-common && add-apt-repository ppa:webupd8team/java -y && apt-get update && apt-get install -y oracle-java8-installer && apt-get install -y oracle-java8-set-default
+RUN echo zaerzaze
 
 ARG UID=1000
 ARG GID=1000
@@ -84,6 +85,8 @@ ARG MIRROR=https://archive.apache.org/dist
 ENV NIFI_BASE_DIR /opt/nifi 
 ENV NIFI_HOME=${NIFI_BASE_DIR}/nifi-${NIFI_VERSION} \
     NIFI_BINARY_URL=/nifi/${NIFI_VERSION}/nifi-${NIFI_VERSION}-bin.tar.gz
+
+RUN echo bravo
 
 # Setup NiFi user
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
@@ -107,14 +110,13 @@ USER root
 RUN mkdir /nifi-added-nar-bundles 
 
 # copy devs
-# RUN echo alpha 
+RUN echo champion bravo zoulou
 ADD ./nifi-nar-bundles/nifi-tess4J-bundle/nifi-tess4J-nar/target/*.nar ${NIFI_HOME}/lib/
-ADD sh/ ${NIFI_BASE_DIR}/scripts/
+ADD ./sh/*.* ${NIFI_BASE_DIR}/scripts/
 
 # copy devs
-RUN mkdir ${NIFI_BASE_DIR}/lib && ln -s ${NIFI_BASE_DIR} ${NIFI_HOME}/lib
 VOLUME     ${NIFI_BASE_DIR}/modules \
-           ${NIFI_BASE_DIR}/importscripts \
+           ${NIFI_HOME}/importscripts \
 		   ${NIFI_BASE_DIR}/flux \           
            ${NIFI_HOME}/logs \           
 		   ${NIFI_HOME}/flowfile_repository \
@@ -122,6 +124,7 @@ VOLUME     ${NIFI_BASE_DIR}/modules \
 		   ${NIFI_HOME}/content_repository \
 		   ${NIFI_HOME}/provenance_repository 
            
+RUN chown -R nifi:nifi ${NIFI_BASE_DIR}/scripts && chmod -R 755 ${NIFI_BASE_DIR}/scripts/*.sh
 
 USER nifi
 # Web HTTP(s) & Socket Site-to-Site Ports

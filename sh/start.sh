@@ -19,9 +19,9 @@
 NIFI_BASE_DIR="/opt/nifi"
 scripts_dir="${NIFI_BASE_DIR}/scripts"
 
-#    if [ ! -d "${NIFI_BASE_DIR}/modules" ]; then cp -v ${NIFI_BASE_DIR}/modules/* ${NIFI_BASE_DIR}/lib/ | cat -n; fi
-#    if [ ! -d "${NIFI_BASE_DIR}/importscripts" ]; then cp -v ${NIFI_BASE_DIR}/importscripts/* ${NIFI_BASE_DIR}/scripts/ | cat -n; fi
+[ -f "${scripts_dir}/sync.sh" ] && . "${scripts_dir}/sync.sh"
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
+[ -f "${scripts_dir}/cleanLogs.sh" ] && . "${scripts_dir}/cleanLogs.sh"
 
 # Establish baseline properties
 prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
