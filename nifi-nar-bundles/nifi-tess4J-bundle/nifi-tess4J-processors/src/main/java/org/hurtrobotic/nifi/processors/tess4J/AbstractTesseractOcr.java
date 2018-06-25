@@ -1,7 +1,11 @@
 package org.hurtrobotic.nifi.processors.tess4J;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,11 +13,24 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.LangDetectException;
+import com.cybozu.labs.langdetect.Language;
 
 
 public abstract class AbstractTesseractOcr extends AbstractProcessor {
+	protected static final String PROP_MAPPING_ISO639 = File.separatorChar +"mapping_iso639.properties";
+	protected static final String PROP_SUPPORTED_LGPACK = File.separatorChar +"supported_lgpack_iso639.properties";
+	protected static final String PROPDIR_LANG_DETECT = File.separatorChar +"profiles" + File.separatorChar + "com.cybozu.labs";
+	protected Properties mappingIso639Part3;
+	protected Properties supportedLgPack;
+	protected Detector detector;
+
 	protected static final Set<String>allowedLanguages = new HashSet<String>( Arrays.asList("afr", "ara", "aze", "bel", "ben", "bul", "cat", "ces", "chi-sim", "chi-tra", "chr", "dan",
 			"deu", "deu-frak", "dev", "ell", "eng", "enm", "epo", "equ", "est", "eus", "fin", "fra", "frk",
 			"frm", "glg", "grc", "heb", "hin", "hrv", "hun", "ind", "isl", "ita", "ita-old", "jpn", "kan",
@@ -25,7 +42,7 @@ public abstract class AbstractTesseractOcr extends AbstractProcessor {
 			.name("filename.language.extraction.mode").displayName("language Iso extraction mode")
 			.description("Mode used for extracting iso code from Flowfile filename. "
 					+ "Valid values are regex textdetection regexORtextdetection textdetectionORregex.")
-			.addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).defaultValue("none")
+			.addValidator(StandardValidators.NON_EMPTY_VALIDATOR).defaultValue("none")
 			.allowableValues("regex", "textdetection", "regexORtextdetection", "textdetectionORregex", "none")
 			.required(true).build();
 
@@ -68,6 +85,13 @@ public abstract class AbstractTesseractOcr extends AbstractProcessor {
 			.addValidator(StandardValidators.INTEGER_VALIDATOR).expressionLanguageSupported(true).defaultValue("3")
 			.required(true).build();
 
+	public static final PropertyDescriptor TESSERACT_OUTPUT_FORMAT = new PropertyDescriptor.Builder()
+			.name("tesseract.output.format").displayName("Tesseract output format")
+			.description("Output format for OCR production")
+			.addValidator(StandardValidators.NON_EMPTY_VALIDATOR) 
+			.allowableValues("PDFDOC", "TXT")
+			.defaultValue("PDFDOC").required(true).build();	
+	
 	public static final PropertyDescriptor DEFAULT_LANGUAGE = new PropertyDescriptor.Builder().name("default.language")
 			.displayName("Default language")
 			.description("Default language if detection failed or extraction mode set to none.")
@@ -89,4 +113,78 @@ public abstract class AbstractTesseractOcr extends AbstractProcessor {
 		}
 		return retour;
 	}
+	
+    /**
+     * Will load {@link Properties} from properties file discovered at the
+     * provided path relative to the root of the classpath.
+     */
+    public Properties loadPropertiesFromClasspath(String path) {
+        try {
+            Properties prop = new Properties();
+            prop.load(Class.class.getResourceAsStream(path));
+            return prop;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }	
+    
+    protected void init(final ProcessorInitializationContext context) {		
+		super.init(context);
+		getLogger().info("Start Init.");
+				  
+		 try { 		 
+			 mappingIso639Part3 = loadPropertiesFromClasspath(PROP_MAPPING_ISO639);
+			 supportedLgPack = loadPropertiesFromClasspath(PROP_SUPPORTED_LGPACK);
+			 SingletonDetectorFactory.getInstance();
+		 }
+		 catch (Exception e) { 
+			 getLogger().error("Error during processing", new Object[] { context, e });		 
+		 }
+		 getLogger().info("End Init.");
+    }
+    
+	protected String detectLanguage(String text) throws LangDetectException {	         
+		String detectedLanguage = null;
+		detector = DetectorFactory.create(); 
+        detector.append(text);
+        ArrayList<Language> probabilities = detector.getProbabilities();
+        if (probabilities != null) {
+	        for(int i=0;i<probabilities.size();i++) {
+	        	String lg = probabilities.get(i).lang;
+	        	String isoLg = mappingIso639Part3.getProperty(lg);
+	        	String check = this.supportedLgPack.getProperty(isoLg);
+	        	getLogger().info("Detect Language probabilities #{} : {} - {} - {}",new Object[] { Integer.valueOf(i), lg, isoLg, check });
+	        	if (check.equalsIgnoreCase("yes")) {
+	        		detectedLanguage = isoLg;
+	        		break;
+	        	}
+	        }
+        }
+		getLogger().info("Detect Language is " + detectedLanguage);
+        return detectedLanguage;
+	}
+    
+	
+	private static class SingletonDetectorFactory {
+		private SingletonDetectorFactory() throws LangDetectException {
+			String confDir = System.getenv("NIFI_HOME") + File.separatorChar + "conf";
+			String profileDir = confDir + PROPDIR_LANG_DETECT;
+			DetectorFactory.loadProfile(profileDir);
+		}
+
+		private static class SingletonHolder {
+			private static SingletonDetectorFactory sessionData = null;	
+			
+			private synchronized static SingletonDetectorFactory getSessionData() throws LangDetectException {
+				if (sessionData == null) {
+					sessionData = new SingletonDetectorFactory();
+				}
+				return sessionData;				
+			}
+		}
+
+		public static SingletonDetectorFactory getInstance() throws LangDetectException {
+			return AbstractTesseractOcr.SingletonDetectorFactory.SingletonHolder.getSessionData();
+		}
+	}	
 }

@@ -20,7 +20,6 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,7 +36,6 @@ import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -56,6 +54,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.LangDetectException;
 import com.j256.simplemagic.ContentInfo;
 import com.j256.simplemagic.ContentInfoUtil;
 
@@ -70,14 +71,16 @@ import net.sourceforge.tess4j.Tesseract;
 @WritesAttributes({
 		@WritesAttribute(attribute = "file.source.ocr.filename", description = "The filename of the source FlowFile."),
 		@WritesAttribute(attribute = "file.source.ocr.uuid", description = "The UUID of the source FlowFile."),
+		@WritesAttribute(attribute = "mime.extension", description = "File extension of produced ocr FlowFile."),
+		@WritesAttribute(attribute = "mime.type", description = "Mimetype of produced ocr FlowFile."),
+		@WritesAttribute(attribute = "file.source.ocr.uuid", description = "The UUID of the source FlowFile."),
 		@WritesAttribute(attribute = "output.ocr.language", description = "The language used by Tesseract OCR")})
 
 public class Tess4JOcr extends AbstractTesseractOcr {
 	private static final String SOURCE_FILENAME = "file.source.ocr.filename";
 	private static final String SOURCE_UUID = "file.source.ocr.uuid";
+	private static final String MIME_EXTENSION = "mime.extension";
 	private static final String OUTPUT_LANGUAGE = "output.ocr.language";
-
-	private Properties mappingIso639Part3;
 	private List<PropertyDescriptor> descriptors;
 	private Set<Relationship> relationships;
 
@@ -92,20 +95,11 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 			.description("Flowfiles that could not be processed").build();
 
 
-	protected void init(final ProcessorInitializationContext context) {
+	protected void init(final ProcessorInitializationContext context) {		
+		super.init(context);
+		Set<Relationship> relationships = new HashSet<Relationship>();
+		List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
 		getLogger().info("Start Init.");
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		/*
-		 * ClassLoader classLoader = getClass().getClassLoader(); final String
-		 * propFileName = "mapping_iso639.properties"; try { mappingIso639Part3 = new
-		 * Properties();
-		 * mappingIso639Part3.load(classLoader.getResourceAsStream(propFileName)); }
-		 * catch (Exception e) { // e.printStackTrace();
-		 * getLogger().error("Error during processing", new Object[] { context, e });
-		 * 
-		 * }
-		 */
 		relationships.add(REL_ORI);
 		relationships.add(REL_OCR);
 		relationships.add(REL_FAILURE);
@@ -113,6 +107,7 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 
 		descriptors.add(FILENAME_LANGUAGE_EXTRACTION_MODE);
 		descriptors.add(FILENAME_LANGUAGE_EXTRACTION_REGEX);
+		descriptors.add(TESSERACT_OUTPUT_FORMAT);
 		descriptors.add(TESSERACT_INSTALL_DIR);
 		descriptors.add(TESSERACT_ENGINE_MODE);
 		descriptors.add(TESSERACT_PAGE_SEG_MODE);
@@ -132,16 +127,12 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 		List<FlowFile> oriFlowFilesList = new ArrayList<>();
 
 		Map<String, String> attributes = new HashMap<>();
-		Map<String, String> txtFileAttributes = new HashMap<>();
+		Map<String, String> outFileAttributes = new HashMap<>();
 
-	
 		session.read(originalFlowFile, new InputStreamCallback() {
 
 			public void process(InputStream rawIn) throws IOException {
 
-				File tmpProcessing = null;
-				File imgFile = null;
-				File textFile = null;
 
 				try (final InputStream in = new BufferedInputStream(rawIn)) {
 					getLogger().info("Start Image Processing.");
@@ -158,9 +149,9 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 							.evaluateAttributeExpressions(originalFlowFile).getValue();
 
 					getLogger().info("Processing language.");
+					String defaultLanguage = context.getProperty(DEFAULT_LANGUAGE).evaluateAttributeExpressions(originalFlowFile).getValue();
 					if (fileNameExtractionMode.equalsIgnoreCase("none")) {
-						isoLanguage = context.getProperty(DEFAULT_LANGUAGE)
-								.evaluateAttributeExpressions(originalFlowFile).getValue();
+						isoLanguage = defaultLanguage;
 					} else if (fileNameExtractionMode.equalsIgnoreCase("regex")) {
 						isoLanguage = extractIsoFromFileName(context, originalFileName);
 					} else if (fileNameExtractionMode.equalsIgnoreCase("textdetection")) {
@@ -184,7 +175,9 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 						isoLanguage = mappingIso639Part3.getProperty(isoLanguage);
 					}
 					if ((isoLanguage == null) || !allowedLanguages.contains(isoLanguage)) {
-						throw new Exception("Invalid iso language : " + ((isoLanguage != null) ? isoLanguage : "NULL"));
+						getLogger().info("Requested Language \"{}\" is not valid iso language. using default processing Language  \"{}\"",
+								new Object[] { isoLanguage, defaultLanguage});
+						isoLanguage = defaultLanguage;
 					}
 
 					attributes.put(OUTPUT_LANGUAGE, isoLanguage);
@@ -205,26 +198,32 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 					String txt = instance.doOCR(imBuff);
 					getLogger().info("End processing OCR.");
 
-					FlowFile textFileFlow = session.create(originalFlowFile);
+					FlowFile outFileFlow = session.create(originalFlowFile);
+					/**
+					 * TODO IMPLEMENT PRODUCTION OF PDF DOCUMENT
+					 */
 					try {
-						textFileFlow = session.append(textFileFlow, new OutputStreamCallback() {
+						outFileFlow = session.append(outFileFlow, new OutputStreamCallback() {
 							@Override
 							public void process(OutputStream out) throws IOException {
-								getLogger().info("Start writing result to textFile.");
+								getLogger().info("Start writing result to outFile.");
 								IOUtils.copy(new ByteArrayInputStream(txt.getBytes("UTF-8")), out);
-								getLogger().info("End writing result to textFile.");
+								getLogger().info("End writing result to outFile.");
 							}
 						});
-						String[] oriFileInfos = getFileInfos(originalFileName);						
-						txtFileAttributes.put(CoreAttributes.FILENAME.key(), oriFileInfos[0] + ".txt");
-						txtFileAttributes.put(CoreAttributes.MIME_TYPE.key(), textContent.getMimeType());
-						txtFileAttributes.put(SOURCE_UUID, originalUUID);
-						txtFileAttributes.put(SOURCE_FILENAME, originalFileName);
-						textFileFlow = session.putAllAttributes(textFileFlow, txtFileAttributes);
-						outputFlowFileList.add(textFileFlow);
+						String[] oriFileInfos = getFileInfos(originalFileName);
+						String[] extensions = textContent.getFileExtensions();
+						outFileAttributes.put(CoreAttributes.FILENAME.key(), oriFileInfos[0] + "." + extensions[0]);
+						outFileAttributes.put(CoreAttributes.MIME_TYPE.key(), textContent.getMimeType());
+						outFileAttributes.put(MIME_EXTENSION, "." + extensions[0]);						
+						outFileAttributes.put(OUTPUT_LANGUAGE, isoLanguage);						
+						outFileAttributes.put(SOURCE_UUID, originalUUID);
+						outFileAttributes.put(SOURCE_FILENAME, originalFileName);
+						outFileFlow = session.putAllAttributes(outFileFlow, outFileAttributes);
+						outputFlowFileList.add(outFileFlow);
 					} catch (Exception e) {
 						getLogger().error("Error during processing text file result of OCR {}",
-								new Object[] { textFileFlow, e });
+								new Object[] { outFileFlow, e });
 						e.printStackTrace();
 						throw e;
 					}
@@ -234,9 +233,6 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 					e.printStackTrace();
 					invalidFlowFilesList.add(originalFlowFile);
 				} finally {
-					FileUtils.deleteQuietly(imgFile);
-					FileUtils.deleteQuietly(tmpProcessing);
-					FileUtils.deleteQuietly(textFile);
 					getLogger().info("End Image Processing.");
 				}
 			}
@@ -280,11 +276,6 @@ public class Tess4JOcr extends AbstractTesseractOcr {
 		return isoLanguage;
 	}
 
-	private String detectLanguage(String text) {
-		// TODO
-		return ("eng");
-
-	}
 
 	@Override
 	public Set<Relationship> getRelationships() {

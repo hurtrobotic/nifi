@@ -24,6 +24,14 @@
 	<url>https://github.com/hurtrobotic/nifi</url>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
+		<!-- resources>
+			<resource>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**/*.properties</include>
+				</includes>
+			</resource>
+		</resources -->
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -31,15 +39,6 @@
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
-					<resources>
-						<resource>
-							<directory>src/main/java</directory>
-							<includes>
-								<include>**/*.properties</include>
-							</includes>
-							<filtering>true</filtering>
-						</resource>
-					</resources>
 				</configuration>
 			</plugin>
 		</plugins>

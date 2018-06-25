@@ -92,10 +92,18 @@ RUN echo bravo
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && mkdir -p ${NIFI_HOME}/conf/templates \
+    && mkdir -p ${NIFI_HOME}/conf/profiles \
+    && mkdir -p ${NIFI_HOME}/conf/profiles/com.cybozu.labs \
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet
+    && apt-get install -y jq xmlstarlet locales 
 
+RUN locale-gen fr_FR.UTF-8 && \
+	update-locale LANG=fr_FR.UTF-8 && \
+    echo "LANGUAGE=fr_FR.UTF-8" >> /etc/default/locale && \
+    echo "LC_ALL=fr_FR.UTF-8" >> /etc/default/locale && \
+    echo "LC_CTYPE=UTF-8" >> /etc/default/locale
+    
 USER nifi
 
 # Download, validate, and expand Apache NiFi binary.
@@ -106,13 +114,18 @@ RUN curl -fSL ${MIRROR}/${NIFI_BINARY_URL} -o ${NIFI_BASE_DIR}/nifi-${NIFI_VERSI
     && chown -R nifi:nifi ${NIFI_HOME}
 
 USER root
+RUN  echo "java.arg.8=-Dfile.encoding=UTF-8" >> ${NIFI_HOME}/conf/bootstrap.conf
+RUN  echo "java.arg.9=-Dsun.jnu.encoding=UTF-8" >> ${NIFI_HOME}/conf/bootstrap.conf
 
 RUN mkdir /nifi-added-nar-bundles 
 
 # copy devs
-RUN echo champion bravo zoulou
+RUN echo SCHENGEN GERMANIA
 ADD ./nifi-nar-bundles/nifi-tess4J-bundle/nifi-tess4J-nar/target/*.nar ${NIFI_HOME}/lib/
 ADD ./sh/*.* ${NIFI_BASE_DIR}/scripts/
+ADD ./nifi-resources/*.properties ${NIFI_HOME}/conf/
+ADD ./nifi-resources/profiles/com.cybozu.labs ${NIFI_HOME}/conf/profiles/com.cybozu.labs/
+
 
 # copy devs
 VOLUME     ${NIFI_BASE_DIR}/modules \
