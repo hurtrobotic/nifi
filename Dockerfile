@@ -120,7 +120,7 @@ RUN  echo "java.arg.9=-Dsun.jnu.encoding=UTF-8" >> ${NIFI_HOME}/conf/bootstrap.c
 RUN mkdir /nifi-added-nar-bundles 
 
 # copy devs
-RUN echo SCHENGEN GERMANIA
+RUN echo SCHENGEN BOURVIL
 ADD ./nifi-nar-bundles/nifi-tess4J-bundle/nifi-tess4J-nar/target/*.nar ${NIFI_HOME}/lib/
 ADD ./sh/*.* ${NIFI_BASE_DIR}/scripts/
 ADD ./nifi-resources/*.properties ${NIFI_HOME}/conf/

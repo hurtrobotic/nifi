@@ -14,3 +14,4 @@
 # limitations under the License.
 org.hurtrobotic.nifi.processors.tess4J.Tess4JOcr
 org.hurtrobotic.nifi.processors.tess4J.PdfSplit
+org.hurtrobotic.nifi.processors.tess4J.TiffConverter
