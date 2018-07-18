@@ -21,11 +21,13 @@ docker container logs -f <CONTAINER-ID>
 
 Remove containers not running :
 -----------------------------
-FOR /f "tokens=*" %i IN ('docker ps -a -q') DO docker rm %i
+Windows : FOR /f "tokens=*" %i IN ('docker ps -a -q') DO docker rm %i
+Linux : docker rm $(docker ps -a -q)
 
 Remove images : 
 --------------
-FOR /f "tokens=*" %i IN ('docker images -q -f "dangling=true"') DO docker rmi %i
+Windows : FOR /f "tokens=*" %i IN ('docker images -q -f "dangling=true"') DO docker rmi %i
+Linux : docker rmi $(docker images -q -f dangling=true)
 
 re-build nifi image :
 -------------------
